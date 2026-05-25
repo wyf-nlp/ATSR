@@ -13,7 +13,6 @@ import csv
 import random
 
 class ArgumentExpert(nn.Module):
-    """增强的专家网络：带残差连接和LayerNorm"""
     def __init__(self, hidden_size,):
         super().__init__()
         
@@ -97,7 +96,6 @@ class ATSR(RobertaPreTrainedModel):
                 self.role_name_mapping = json.load(f)
         
         if self.config.use_arg_moe:
-             # 论元slot增强MoE
             self.argument_slot_moe = ArgumentAwareMoE(
                 hidden_size=config.hidden_size,
                 num_experts=self.config.moe_num_experts,
@@ -144,7 +142,7 @@ class ATSR(RobertaPreTrainedModel):
         rs = contract("ld,rl->rd", hidden_rep, att)
 
         return rs
-    # 模版选择
+        
     def select_template(self, trigger_repr):
         scores = torch.matmul(trigger_repr, self.w_template_select.t()) 
         template_weights = torch.softmax(scores, dim=0)
