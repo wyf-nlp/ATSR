@@ -41,16 +41,12 @@ class BaseTrainer:
 
     def train_one_step(self):
         self.model.train()
-        # 34 
-        # 34 * l 1024   if step%2000 == 0 : ouput = self.roberta(input=)
-        # 可以听到我说话么 润哥
-
-
+        
         try:
             batch = next(self.data_iterator)
         except StopIteration:
             if self.processor is not None:
-                # re-generate training dataset
+             
                 print('re-generate training dataset')
                 features = self.processor.convert_examples_to_features(self.examples, 'train', self.cfg.marker_range)
                 dataset = self.processor.convert_features_to_dataset(features)
@@ -63,7 +59,7 @@ class BaseTrainer:
 
         inputs = self.convert_batch_to_inputs(batch)
         
-        # 
+        
         loss, _ = self.model(**inputs)
 
         if self.cfg.gradient_accumulation_steps > 1:
