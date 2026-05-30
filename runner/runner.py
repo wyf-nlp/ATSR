@@ -72,7 +72,7 @@ class BaseRunner:
         logger.info("  Gradient Accumulation steps = %d", self.cfg.gradient_accumulation_steps)
         logger.info("  Total optimization steps = %d", self.cfg.max_steps)
 
-        for global_step in range(self.cfg.max_steps): # 10000
+        for global_step in range(self.cfg.max_steps): 
             self.trainer.train_one_step()
 
             if (global_step + 1) % self.cfg.logging_steps == 0:
@@ -129,7 +129,7 @@ class Runner(BaseRunner):
             self.metric["related_test_f1"] = test_f1
 
             self.report_result(dev_c, test_c, global_step)   
-            # self.save_checkpoints()
+            self.save_checkpoints()
         logger.info('current best dev-f1 score: {}'.format(self.metric["best_dev_f1"]))
         logger.info('current related test-f1 score: {}'.format(self.metric["related_test_f1"]))
 
