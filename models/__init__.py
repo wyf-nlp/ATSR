@@ -34,7 +34,7 @@ def build_model(args, model_type):
     # length
     config.max_enc_seq_length = args.max_enc_seq_length
     config.max_dec_seq_length= args.max_dec_seq_length
-    config.max_prompt_seq_length=args.max_prompt_seq_length
+    config.max_template_seq_length=args.max_template_seq_length
     config.max_span_length = args.max_span_length
 
     config.bipartite = args.bipartite
@@ -52,11 +52,11 @@ def build_model(args, model_type):
         model = model_class.from_pretrained(args.model_name_or_path, from_tf=bool('.ckpt' in args.model_name_or_path), config=config)
     
     model.tokenizer = tokenizer
-    # Add trigger special tokens and continuous token (maybe in prompt)
+    # Add trigger special tokens and continuous token (maybe in template)
     new_token_list = copy.deepcopy(EXTERNAL_TOKENS)
-    prompts = MultiargProcessor._read_prompt_group(args.prompt_path)
-    for event_type, prompt in prompts.items():
-        token_list = prompt.split()
+    templates = MultiargProcessor._read_template_group(args.template_path)
+    for event_type, template in templates.items():
+        token_list = template.split()
         for token in token_list:
             if token.startswith('<') and token.endswith('>') and token not in new_token_list:
                 new_token_list.append(token)
