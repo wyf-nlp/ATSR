@@ -40,7 +40,7 @@ class InputFeatures(object):
         self.dec_prompt_texts = dec_prompt_text
         self.dec_prompt_ids = dec_prompt_ids
         self.dec_prompt_mask_ids = dec_prompt_mask_ids
-        # 模版
+
         self.template_options = template_options
         self.offset_prompt = offset_prompt
         if arg_quries is not None:
@@ -82,7 +82,7 @@ class InputFeatures(object):
             if span != (0, 0):
                 if role not in pred_dict_word:
                     pred_dict_word[role] = list()
-                word_span = self.get_word_span(span)  # convert token span to word span
+                word_span = self.get_word_span(span)  
                 if word_span not in pred_dict_word[role]:
                     pred_dict_word[role].append(word_span)
 
@@ -117,7 +117,6 @@ class InputFeatures(object):
         """
         if span == (0, 0):
             raise AssertionError()
-        # offset = 0 if dset_type=='ace_eeqa' else self.event_trigger[2]
         offset = 0
         span = list(span)
         span[0] = min(span[0], max(self.old_tok_index.keys()))
@@ -197,7 +196,7 @@ class ArgumentExtractionDataset(Dataset):
         arg_lists = [f.arg_list for f in batch]
         event_trigger = [f.event_trigger for f in batch]
         enc_attention_mask = [f.enc_attention_mask for f in batch]
-        # 模版
+
         template_options = [f.template_options for f in batch]
         event_types = [f.event_type for f in batch]
         offset_prompt = [f.offset_prompt for f in batch]
@@ -279,7 +278,7 @@ class MultiargProcessor(DSET_processor):
             event_type_2_events = example.event_type_2_events
 
             list_event_type = []
-            # 此triggers包含所有事件的信息
+
             triggers = []
             for event_type, events in event_type_2_events.items():
                 list_event_type += [e['event_type'] for e in events]
@@ -300,7 +299,7 @@ class MultiargProcessor(DSET_processor):
                 print('[trigger_overlap]', event_type_2_events)
                 exit(0)
 
-            # NOTE:
+
             offset = 0
             marked_context = deepcopy(context)
             marker_indice = list(range(len(triggers)))
@@ -343,7 +342,7 @@ class MultiargProcessor(DSET_processor):
                 new_tok_s = enc.char_to_token(char_idx_s)
                 new_tok_e = enc.char_to_token(char_idx_e) + 1
                 new_tok = [new_tok_s, new_tok_e]
-                # print(new_tok)
+           
                 old_tok_to_new_tok_index.append(new_tok)
 
             trigger_enc_token_index = []
@@ -503,7 +502,7 @@ class MultiargProcessor(DSET_processor):
 
                     assert sum([len(slots) for slots in arg_slots]) == num_prompt_slots
 
-                    # dec_table_ids += dec_event_ids
+                   
                     list_arg_slots.append(arg_slots)
                     list_target_info.append(target_info)
                     roles = self.argument_dict[event_type.replace(':', '.')]
