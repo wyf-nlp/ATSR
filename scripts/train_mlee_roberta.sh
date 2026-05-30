@@ -26,7 +26,6 @@ do
         --window_size 250 \
         --warmup_steps 0.2 \
         --bipartite \
-        --lamb 0.1 \
         --use_arg_moe \
         --moe_num_experts 5 \
         --moe_top_k 1 \
