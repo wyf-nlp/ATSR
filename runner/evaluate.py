@@ -86,11 +86,11 @@ class Evaluator(BaseEvaluator):
                 'enc_mask_ids': batch[1].to(self.cfg.device),
                 'all_ids': batch[2].to(self.cfg.device),
                 'all_mask_ids': batch[3].to(self.cfg.device),
-                'dec_prompt_ids': batch[6].to(self.cfg.device),
-                'dec_prompt_mask_ids': batch[7].to(self.cfg.device),
+                'dec_template_ids': batch[6].to(self.cfg.device),
+                'dec_template_mask_ids': batch[7].to(self.cfg.device),
                 'target_info': None,
                 'old_tok_to_new_tok_indexs': batch[9],
-                'arg_joint_prompts': batch[10],
+                'arg_joint_templates': batch[10],
                 'arg_list': batch[11],
                 'event_triggers': batch[-5],
             }
@@ -98,11 +98,11 @@ class Evaluator(BaseEvaluator):
             inputs = {
                 'enc_input_ids':  batch[0].to(self.cfg.device), 
                 'enc_mask_ids':   batch[1].to(self.cfg.device), 
-                'decoder_prompt_ids_list':      [item.to(self.cfg.device) for item in batch[2]], 
-                'decoder_prompt_mask_list': [item.to(self.cfg.device) for item in batch[3]],
+                'decoder_template_ids_list':      [item.to(self.cfg.device) for item in batch[2]], 
+                'decoder_template_mask_list': [item.to(self.cfg.device) for item in batch[3]],
                 'arg_list':       batch[9],
-                'decoder_prompt_start_positions_list': [item.to(self.cfg.device) for item in batch[12]],
-                'decoder_prompt_end_positions_list': [item.to(self.cfg.device) for item in batch[13]],
+                'decoder_template_start_positions_list': [item.to(self.cfg.device) for item in batch[12]],
+                'decoder_template_end_positions_list': [item.to(self.cfg.device) for item in batch[13]],
             }
 
         named_v = {
