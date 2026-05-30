@@ -17,10 +17,10 @@ class InputFeatures(object):
     def __init__(self, example_id, feature_id,
                  event_type, event_trigger,
                  enc_text, enc_input_ids, enc_mask_ids, all_ids, all_mask_ids,
-                 dec_prompt_text, dec_prompt_ids, dec_prompt_mask_ids,
-                 arg_quries, arg_joint_prompt, target_info, enc_attention_mask,
+                 dec_template_text, dec_template_ids, dec_template_mask_ids,
+                 arg_quries, arg_joint_template, target_info, enc_attention_mask,
                  old_tok_to_new_tok_index=None, full_text=None, arg_list=None,
-                 template_options=None,offset_prompt=None
+                 template_options=None,offset_template=None
                  ):
 
         self.example_id = example_id
@@ -37,12 +37,12 @@ class InputFeatures(object):
         self.all_mask_ids = all_mask_ids
         self.enc_attention_mask = enc_attention_mask
 
-        self.dec_prompt_texts = dec_prompt_text
-        self.dec_prompt_ids = dec_prompt_ids
-        self.dec_prompt_mask_ids = dec_prompt_mask_ids
+        self.dec_template_texts = dec_template_text
+        self.dec_template_ids = dec_template_ids
+        self.dec_template_mask_ids = dec_template_mask_ids
 
         self.template_options = template_options
-        self.offset_prompt = offset_prompt
+        self.offset_template = offset_template
         if arg_quries is not None:
             self.dec_arg_query_ids = [v[0] for k, v in arg_quries.items()]
             self.dec_arg_query_masks = [v[1] for k, v in arg_quries.items()]
@@ -54,7 +54,7 @@ class InputFeatures(object):
             self.dec_arg_query_ids = None
             self.dec_arg_query_masks = None
 
-        self.arg_joint_prompt = arg_joint_prompt
+        self.arg_joint_template = arg_joint_template
 
         self.target_info = target_info
         self.old_tok_to_new_tok_index = old_tok_to_new_tok_index
@@ -141,8 +141,8 @@ class InputFeatures(object):
 
         s += "enc_input_ids: {}\n".format(self.enc_input_ids)
         s += "enc_mask_ids: {}\n".format(self.enc_mask_ids)
-        s += "dec_prompt_ids: {}\n".format(self.dec_prompt_ids)
-        s += "dec_prompt_mask_ids: {}\n".format(self.dec_prompt_mask_ids)
+        s += "dec_template_ids: {}\n".format(self.dec_template_ids)
+        s += "dec_template_mask_ids: {}\n".format(self.dec_template_mask_ids)
         return s
 
 
@@ -165,12 +165,12 @@ class ArgumentExtractionDataset(Dataset):
         all_ids = torch.tensor([f.all_ids for f in batch])
         all_mask_ids = torch.tensor([f.all_mask_ids for f in batch])
 
-        if batch[0].dec_prompt_ids is not None:
-            dec_prompt_ids = torch.tensor([f.dec_prompt_ids for f in batch])
-            dec_prompt_mask_ids = torch.tensor([f.dec_prompt_mask_ids for f in batch])
+        if batch[0].dec_template_ids is not None:
+            dec_template_ids = torch.tensor([f.dec_template_ids for f in batch])
+            dec_template_mask_ids = torch.tensor([f.dec_template_mask_ids for f in batch])
         else:
-            dec_prompt_ids = None
-            dec_prompt_mask_ids = None
+            dec_template_ids = None
+            dec_template_mask_ids = None
 
         example_idx = [f.example_id for f in batch]
         feature_idx = torch.tensor([f.feature_id for f in batch])
@@ -192,23 +192,23 @@ class ArgumentExtractionDataset(Dataset):
 
         target_info = [f.target_info for f in batch]
         old_tok_to_new_tok_index = [f.old_tok_to_new_tok_index for f in batch]
-        arg_joint_prompt = [f.arg_joint_prompt for f in batch]
+        arg_joint_template = [f.arg_joint_template for f in batch]
         arg_lists = [f.arg_list for f in batch]
         event_trigger = [f.event_trigger for f in batch]
         enc_attention_mask = [f.enc_attention_mask for f in batch]
 
         template_options = [f.template_options for f in batch]
         event_types = [f.event_type for f in batch]
-        offset_prompt = [f.offset_prompt for f in batch]
+        offset_template = [f.offset_template for f in batch]
 
         return enc_input_ids, enc_mask_ids, all_ids, all_mask_ids, \
                dec_arg_query_ids, dec_arg_query_mask_ids, \
-               dec_prompt_ids, dec_prompt_mask_ids, \
-               target_info, old_tok_to_new_tok_index, arg_joint_prompt, arg_lists, \
+               dec_template_ids, dec_template_mask_ids, \
+               target_info, old_tok_to_new_tok_index, arg_joint_template, arg_lists, \
                example_idx, feature_idx, \
                dec_arg_start_positions, dec_arg_end_positions, \
                start_position_ids, end_position_ids, event_trigger, enc_attention_mask, \
-               template_options,event_types,offset_prompt
+               template_options,event_types,offset_template
 
 
 class MultiargProcessor(DSET_processor):
@@ -219,25 +219,25 @@ class MultiargProcessor(DSET_processor):
 
     def set_dec_input(self):
         self.arg_query = False
-        self.prompt_query = False
+        self.template_query = False
         if self.args.model_type == "base":
             self.arg_query = True
         elif "ATSR" in self.args.model_type:
-            self.prompt_query = True
+            self.template_query = True
         else:
             raise NotImplementedError(f"Unexpected setting {self.args.model_type}")
 
     @staticmethod
-    def _read_prompt_group(prompt_path):
-        with open(prompt_path) as f:
+    def _read_template_group(template_path):
+        with open(template_path) as f:
             lines = f.readlines()
-        prompts = dict()
+        templates = dict()
         for line in lines:
             if not line:
                 continue
-            event_type, prompt = line.split(":")
-            prompts[event_type] = prompt
-        return prompts
+            event_type, template = line.split(":")
+            templates[event_type] = template
+        return templates
 
     def create_dec_qury(self, arg, event_trigger):
         dec_text = _PREDEFINED_QUERY_TEMPLATE.format(arg=arg, trigger=event_trigger)
@@ -252,10 +252,10 @@ class MultiargProcessor(DSET_processor):
         matching_result = re.search(arg, dec_text)
         char_idx_s, char_idx_e = matching_result.span()
         char_idx_e -= 1
-        tok_prompt_s = dec.char_to_token(char_idx_s)
-        tok_prompt_e = dec.char_to_token(char_idx_e) + 1
+        tok_template_s = dec.char_to_token(char_idx_s)
+        tok_template_e = dec.char_to_token(char_idx_e) + 1
 
-        return dec_input_ids, dec_mask_ids, tok_prompt_s, tok_prompt_e
+        return dec_input_ids, dec_mask_ids, tok_template_s, tok_template_e
 
     def find_idx(self, target, list):
         for i, item in enumerate(list):
@@ -264,11 +264,11 @@ class MultiargProcessor(DSET_processor):
 
     def convert_examples_to_features(self, examples, role_name_mapping=None):
         features = []
-        if self.prompt_query:
-            prompts = self._read_prompt_group(self.args.prompt_path)
-            prompts1 = self._read_prompt_group(self.args.prompt_path1)
-            prompts2 = self._read_prompt_group(self.args.prompt_path2)
-            prompts3 = self._read_prompt_group(self.args.prompt_path3)
+        if self.template_query:
+            templates = self._read_template_group(self.args.template_path)
+            templates1 = self._read_template_group(self.args.template_path1)
+            templates2 = self._read_template_group(self.args.template_path2)
+            templates3 = self._read_template_group(self.args.template_path3)
 
         if os.environ.get("DEBUG", False): counter = [0, 0, 0]
         over_nums = 0
@@ -332,7 +332,7 @@ class MultiargProcessor(DSET_processor):
             all_mask_ids = enc_mask_ids.copy()
             type_ids = enc_mask_ids.copy()
 
-            offset_prompt = len(enc_input_ids)
+            offset_template = len(enc_input_ids)
 
             while len(enc_input_ids) < self.args.max_enc_seq_length:
                 enc_input_ids.append(self.tokenizer.pad_token_id)
@@ -356,13 +356,13 @@ class MultiargProcessor(DSET_processor):
                 type_ids[it[0] - 1] = ii + 2  
             dec_table_mask = []
 
-            """ Deal with prompt template """
-            list_arg_2_prompt_slots = []
-            list_num_prompt_slots = []
-            list_dec_prompt_ids = []
-            list_arg_2_prompt_slot_spans = []
+            """ Deal with template template """
+            list_arg_2_template_slots = []
+            list_num_template_slots = []
+            list_dec_template_ids = []
+            list_arg_2_template_slot_spans = []
             list_template_options = []
-            offset_prompt_ = 0
+            offset_template_ = 0
             kk = 0
             enc_attention_mask = torch.zeros((2, self.args.max_enc_seq_length, self.args.max_enc_seq_length),
                                              dtype=torch.float32)   
@@ -375,10 +375,10 @@ class MultiargProcessor(DSET_processor):
                                                          trigger_enc_token_index[kk][1] + 1
                     kk += 1
                     
-                    template_option = prompts[event_type].strip()
-                    template_option1 = prompts1[event_type].strip()
-                    template_option2 = prompts2[event_type].strip()
-                    template_option3 = prompts3[event_type].strip()
+                    template_option = templates[event_type].strip()
+                    template_option1 = templates1[event_type].strip()
+                    template_option2 = templates2[event_type].strip()
+                    template_option3 = templates3[event_type].strip()
                     template_full = ' '.join(event_name) + ' ' + template_option
                     template_full_1 = ' '.join(event_name) + ' ' + template_option1
                     template_full_2 = ' '.join(event_name) + ' ' + template_option2
@@ -388,24 +388,24 @@ class MultiargProcessor(DSET_processor):
                     list_template_options.append(template_options)
 
                 
-                    dec_prompt_text = template_full
-                    assert dec_prompt_text
+                    dec_template_text = template_full
+                    assert dec_template_text
                     
-                    dec_prompt = self.tokenizer(dec_prompt_text, add_special_tokens=True)
-                    dec_prompt_ids, dec_prompt_mask_ids = dec_prompt["input_ids"], dec_prompt["attention_mask"]
+                    dec_template = self.tokenizer(dec_template_text, add_special_tokens=True)
+                    dec_template_ids, dec_template_mask_ids = dec_template["input_ids"], dec_template["attention_mask"]
 
                     arg_list = self.argument_dict[event_type.replace(':', '.')]
-                    arg_2_prompt_slots = dict()
-                    arg_2_prompt_slot_spans = dict()
-                    num_prompt_slots = 0
+                    arg_2_template_slots = dict()
+                    arg_2_template_slot_spans = dict()
+                    num_template_slots = 0
 
                     if os.environ.get("DEBUG", False): arg_set = set()
                     for arg in arg_list:
-                        prompt_slots = {
+                        template_slots = {
                             "tok_s": list(), "tok_e": list(),
                             "tok_s_off": list(), "tok_e_off": list(),
                         }
-                        prompt_slot_spans = []
+                        template_slot_spans = []
 
                         if role_name_mapping is not None:
                             arg_ = role_name_mapping[event_type][arg]
@@ -413,29 +413,29 @@ class MultiargProcessor(DSET_processor):
                             arg_ = arg
                      
                         for matching_result in re.finditer(r'\b' + re.escape(arg_) + r'\b',
-                                                           dec_prompt_text.split('.')[0]):
+                                                           dec_template_text.split('.')[0]):
                             char_idx_s, char_idx_e = matching_result.span();
                             char_idx_e -= 1
-                            tok_prompt_s = dec_prompt.char_to_token(char_idx_s)
-                            tok_prompt_e = dec_prompt.char_to_token(char_idx_e) + 1
-                            prompt_slot_spans.append((tok_prompt_s, tok_prompt_e))
-                            prompt_slots["tok_s"].append(tok_prompt_s + offset_prompt_);
-                            prompt_slots["tok_e"].append(tok_prompt_e + offset_prompt_)
-                            prompt_slots["tok_s_off"].append(tok_prompt_s + offset_prompt + offset_prompt_);
-                            prompt_slots["tok_e_off"].append(tok_prompt_e + offset_prompt + offset_prompt_)
-                            num_prompt_slots += 1
+                            tok_template_s = dec_template.char_to_token(char_idx_s)
+                            tok_template_e = dec_template.char_to_token(char_idx_e) + 1
+                            template_slot_spans.append((tok_template_s, tok_template_e))
+                            template_slots["tok_s"].append(tok_template_s + offset_template_);
+                            template_slots["tok_e"].append(tok_template_e + offset_template_)
+                            template_slots["tok_s_off"].append(tok_template_s + offset_template + offset_template_);
+                            template_slots["tok_e_off"].append(tok_template_e + offset_template + offset_template_)
+                            num_template_slots += 1
 
-                        arg_2_prompt_slots[arg] = prompt_slots
-                        arg_2_prompt_slot_spans[arg] = prompt_slot_spans
+                        arg_2_template_slots[arg] = template_slots
+                        arg_2_template_slot_spans[arg] = template_slot_spans
 
-                    list_arg_2_prompt_slots.append(arg_2_prompt_slots)
-                    list_num_prompt_slots.append(num_prompt_slots)
-                    list_dec_prompt_ids.append(dec_prompt_ids)
-                    list_arg_2_prompt_slot_spans.append(arg_2_prompt_slot_spans)
+                    list_arg_2_template_slots.append(arg_2_template_slots)
+                    list_num_template_slots.append(num_template_slots)
+                    list_dec_template_ids.append(dec_template_ids)
+                    list_arg_2_template_slot_spans.append(arg_2_template_slot_spans)
 
-                offset_prompt_ += len(dec_prompt_ids)
-                dec_table_ids += dec_prompt_ids
-                dec_table_mask += dec_prompt_mask_ids
+                offset_template_ += len(dec_template_ids)
+                dec_table_ids += dec_template_ids
+                dec_table_mask += dec_template_mask_ids
 
             all_ids.extend(dec_table_ids)
 
@@ -456,9 +456,9 @@ class MultiargProcessor(DSET_processor):
             k = 0
             for i, (event_type, events) in enumerate(event_type_2_events.items()):
                 for event in events:
-                    arg_2_prompt_slots = list_arg_2_prompt_slots[k]
-                    num_prompt_slots = list_num_prompt_slots[k]
-                    dec_prompt_ids = list_dec_prompt_ids[k]
+                    arg_2_template_slots = list_arg_2_template_slots[k]
+                    num_template_slots = list_num_template_slots[k]
+                    dec_template_ids = list_dec_template_ids[k]
                     k += 1
                     row_index += 1
 
@@ -472,8 +472,8 @@ class MultiargProcessor(DSET_processor):
 
                     event_args_name = [arg[-1] for arg in event_args]
                     target_info = dict()
-                    for arg, prompt_slots in arg_2_prompt_slots.items():
-                        num_slots = len(prompt_slots['tok_s'])
+                    for arg, template_slots in arg_2_template_slots.items():
+                        num_slots = len(template_slots['tok_s'])
                         arg_slots.append([cursor + x for x in range(num_slots)])
                         cursor += num_slots
 
@@ -500,7 +500,7 @@ class MultiargProcessor(DSET_processor):
                         arg_target["span_e"] = end_positions
                         target_info[arg] = arg_target
 
-                    assert sum([len(slots) for slots in arg_slots]) == num_prompt_slots
+                    assert sum([len(slots) for slots in arg_slots]) == num_template_slots
 
                    
                     list_arg_slots.append(arg_slots)
@@ -509,7 +509,7 @@ class MultiargProcessor(DSET_processor):
                     assert len(roles) == len(arg_slots)
                     list_roles.append(roles)
 
-            max_dec_seq_len = self.args.max_prompt_seq_length
+            max_dec_seq_len = self.args.max_template_seq_length
 
             while len(dec_table_ids) < max_dec_seq_len:
                 dec_table_ids.append(self.tokenizer.pad_token_id)
@@ -521,7 +521,7 @@ class MultiargProcessor(DSET_processor):
                 all_ids = all_ids[:self.args.max_enc_seq_length]
                 all_mask_ids = all_mask_ids[:self.args.max_enc_seq_length]
 
-            if len(list_arg_2_prompt_slots) == 1:
+            if len(list_arg_2_template_slots) == 1:
                 enc_attention_mask = torch.zeros((2, self.args.max_enc_seq_length, self.args.max_enc_seq_length),
                                                  dtype=torch.float32)
 
@@ -532,11 +532,11 @@ class MultiargProcessor(DSET_processor):
                 InputFeatures(example_id, feature_idx,
                               list_event_type, trigger_enc_token_index,
                               enc_text, enc_input_ids, enc_mask_ids, all_ids, all_mask_ids,
-                              dec_prompt_text, dec_table_ids, dec_table_mask, None,
-                              list_arg_2_prompt_slots, list_target_info, enc_attention_mask,
+                              dec_template_text, dec_table_ids, dec_table_mask, None,
+                              list_arg_2_template_slots, list_target_info, enc_attention_mask,
                               old_tok_to_new_tok_index=old_tok_to_new_tok_index, full_text=example.context,
                               arg_list=list_roles,
-                              template_options=list_template_options,offset_prompt=offset_prompt
+                              template_options=list_template_options,offset_template=offset_template
                               )
             )
         print(over_nums)
