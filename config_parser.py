@@ -3,23 +3,23 @@ import argparse
 
 def get_args_parser():
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--model_type", default='ATSR', type=str,
-                        help="which types of model you would use. model with multi-prompt(ATSR) or single-prompt(base)")
+    parser.add_argument("--model_type", default='DEEIA', type=str,
+                        help="which types of model you would use. model with multi-template(DEEIA) or single-template(base)")
     parser.add_argument("--model_name_or_path", default="./ckpts/bart-base", type=str,
                         help="pre-trained language model")
     parser.add_argument("--dataset_type", default="rams", type=str,
                         help="dataset type. Both sentence-level(ace_eeqa) and document-level(rams/wikievent)")
     parser.add_argument("--role_path", default='./data/dset_meta/description_rams.csv', type=str,
                         help="a file containing all role names. Read it to access all argument roles of this dataset")
-    parser.add_argument("--prompt_path", default='./data/prompts/prompts_wikievent_full.csv', type=str,
-                        help="a file containing all prompts we use for this dataset")
+    parser.add_argument("--ontology_path", default='./data/templates/ontology_wikievent_full.csv', type=str,
+                        help="a file containing all templates we use for this dataset")
     
-    parser.add_argument("--prompt_path1", default='./data/prompts/prompts_wikievent_full_t1.csv', type=str,
-                        help="a file containing all prompts we use for this dataset")
-    parser.add_argument("--prompt_path2", default='./data/prompts/prompts_wikievent_full_t2.csv', type=str,
-                        help="a file containing all prompts we use for this dataset")
-    parser.add_argument("--prompt_path3", default='./data/prompts/prompts_wikievent_full_t3.csv', type=str,
-                        help="a file containing all prompts we use for this dataset")
+    parser.add_argument("--template_path1", default='./data/templates/templates_wikievent_full_t1.csv', type=str,
+                        help="a file containing all templates we use for this dataset")
+    parser.add_argument("--template_path2", default='./data/templates/templates_wikievent_full_t2.csv', type=str,
+                        help="a file containing all templates we use for this dataset")
+    parser.add_argument("--template_path3", default='./data/templates/templates_wikievent_full_t3.csv', type=str,
+                        help="a file containing all templates we use for this dataset")
 
     parser.add_argument("--output_dir", default='./outputs_res', type=str,
                         help="output folder storing checkpoint and all sorts of log files")
@@ -67,34 +67,32 @@ def get_args_parser():
 
 
     # setting only for the situation when inference_only
-    parser.add_argument('--inference_model_path', default="/home/nlp/lwl/project/NLP/IJCAI2024/new/ATSR_v2.2_opt/exps/wikievent/test/checkpoint_ours_single", type=str,
+    parser.add_argument('--inference_model_path', type=str,
                         help="The path of checkpoint used for inference.")
     # setting only for base model.
     parser.add_argument("--max_dec_seq_length", default=20, type=int,
-                        help="maximum length for single prompt")
+                        help="maximum length for single template")
     parser.add_argument("--max_span_num", default=1, type=int,
                         help="maximum arguments extracted for one role.")
     parser.add_argument('--th_delta', default=.0, type=float,
                         help="threshold controlling whether accept a candiate span as argument or not")
-    # setting only for ATSR model
-    parser.add_argument("--max_prompt_seq_length", default=64, type=int,
-                        help="maximum length for multi-prompt")
+    # setting only for DEEIA model
+    parser.add_argument("--max_template_seq_length", default=64, type=int,
+                        help="maximum length for multi-template")
     parser.add_argument('--matching_method_train', default="max", choices=["max", 'accurate'], type=str,
                         help="start/end token matching method during training.")
     parser.add_argument('--bipartite', default=False, action="store_true",
                         help="whether use bipartite matching loss during training or not.")
-    #MOE
-    parser.add_argument('--use_moe', default=False, action="store_true",
-                        help="Whether to enable the MoE module")
-    parser.add_argument('--use_arg_moe', default=False, action="store_true",
-                        help="Whether to enable the arg_MoE module")
-    parser.add_argument('--moe_num_experts', default=4, type=int,
-                        help="Number of MOE experts")
-    parser.add_argument('--moe_top_k', default=2, type=int,
-                        help="top-k")
-    parser.add_argument("--lambd", default=0.01, type=float)
-    parser.add_argument("--arg_res", default=1, type=float)
+      
 
+    parser.add_argument('--use_arg_moe', default=False, action="store_true",
+                        help="whether use during training or not.")
+    parser.add_argument('--moe_num_experts', default=4, type=int,
+                        help="the number of experts")
+    parser.add_argument('--moe_top_k', default=1, type=int,
+                        help="top-k experts")
+    parser.add_argument("--lambd", default=0.1, type=float)
+    parser.add_argument("--arg_res", default=1, type=float)
     parser.add_argument("--hidden_dropout_prob", default=0.1, type=float)
 
     args = parser.parse_args()
@@ -102,4 +100,3 @@ def get_args_parser():
     if args.inference_only:
         args.output_dir = "/".join(args.inference_model_path.split("/")[:-1])
     return args
-
