@@ -6,7 +6,6 @@ from utils import hungarian_matcher, get_best_span, get_best_span_simple
 from opt_einsum import contract
 from models.modeling_roberta_ import RobertaModel_, RobertaPreTrainedModel
 from models.modeling_roberta_ import *
-from models.process_long import process_long_input_decode, process_long_input
 import torch.nn.functional as F
 import json
 import csv
