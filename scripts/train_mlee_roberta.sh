@@ -1,7 +1,7 @@
 # Learning rate 
 LR=3e-5
 
-# seed
+# Seed
 SEEDS=(22 42 66 99 111 1234)
 
 for SEED in "${SEEDS[@]}"
