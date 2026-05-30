@@ -265,7 +265,7 @@ class MultiargProcessor(DSET_processor):
     def convert_examples_to_features(self, examples, role_name_mapping=None):
         features = []
         if self.template_query:
-            templates = self._read_template_group(self.args.template_path)
+            ontologys = self._read_template_group(self.args.ontology_path)
             templates1 = self._read_template_group(self.args.template_path1)
             templates2 = self._read_template_group(self.args.template_path2)
             templates3 = self._read_template_group(self.args.template_path3)
@@ -375,11 +375,11 @@ class MultiargProcessor(DSET_processor):
                                                          trigger_enc_token_index[kk][1] + 1
                     kk += 1
                     
-                    template_option = templates[event_type].strip()
+                    ontology_ = templates[event_type].strip()
                     template_option1 = templates1[event_type].strip()
                     template_option2 = templates2[event_type].strip()
                     template_option3 = templates3[event_type].strip()
-                    template_full = ' '.join(event_name) + ' ' + template_option
+                    ontology_full = ' '.join(event_name) + ' ' + ontology_
                     template_full_1 = ' '.join(event_name) + ' ' + template_option1
                     template_full_2 = ' '.join(event_name) + ' ' + template_option2
                     template_full_3 = ' '.join(event_name) + ' ' + template_option3
@@ -388,7 +388,7 @@ class MultiargProcessor(DSET_processor):
                     list_template_options.append(template_options)
 
                 
-                    dec_template_text = template_full
+                    dec_template_text = ontology_full
                     assert dec_template_text
                     
                     dec_template = self.tokenizer(dec_template_text, add_special_tokens=True)
