@@ -225,8 +225,8 @@ class DSET_processor:
             event_args_name = [arg['role'] for arg in event_args]
             enc_text = " ".join(sent)
 
-            old_tok_to_char_index = []  # old tok: split by oneie
-            old_tok_to_new_tok_index = []  # new tok: split by BART
+            old_tok_to_char_index = [] 
+            old_tok_to_new_tok_index = [] 
 
             curr = 0
             for tok in sent:
@@ -260,7 +260,7 @@ class DSET_processor:
                     arg_idx = event_args_name.index(arg)
                     event_arg_info = event_args[arg_idx]
                     answer_text = event_arg_info['text']
-                    # index before BPE, plus 1 because having inserted start token
+                   
                     start_old, end_old = event_arg_info['start'], event_arg_info['end']
                     start_position = old_tok_to_new_tok_index[start_old]
                     end_position = old_tok_to_new_tok_index[end_old] if end_old < len(old_tok_to_new_tok_index) else \
@@ -325,14 +325,13 @@ class DSET_processor:
             random.seed(666)
             examples = sample(examples, sample_num)
 
-            random.seed(self.args.seed)            # 恢复 random seed
-            np.random.seed(self.args.seed)         # 恢复 numpy seed
-            torch.manual_seed(self.args.seed)      # 恢复 torch seed
+            random.seed(self.args.seed)        
+            np.random.seed(self.args.seed)       
+            torch.manual_seed(self.args.seed)    
 
             logger.info("Few shot setting: keep ratio {}. Only {} training samples remained.".format( \
                 self.args.keep_ratio, len(examples))
             )
-            # logger.info([e.doc_id for e in examples])
 
         features = self.convert_examples_to_features(examples, self.args.role_name_mapping)
         dataset = self.convert_features_to_dataset(features)
