@@ -3,12 +3,6 @@ from .processor_multiarg import MultiargProcessor
 
 
 _DATASET_DIR = {
-    'ace_eeqa':{
-        "train_file": './data/ace_eeqa/train_convert.json',
-        "dev_file": './data/ace_eeqa/dev_convert.json', 
-        "test_file": './data/ace_eeqa/test_convert.json',
-        "max_span_num_file": "./data/dset_meta/role_num_ace.json",
-    },
     'rams':{
         "train_file": './data/RAMS_1.0/data_final/train.jsonlines',
         "dev_file": './data/RAMS_1.0/data_final/dev.jsonlines',
