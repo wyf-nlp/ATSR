@@ -73,8 +73,8 @@ class ATSR(RobertaPreTrainedModel):
 
         self.roberta = RobertaModel_(config, decode_layer_start=decode_layer_start)
 
-        self.w_prompt_start = nn.Parameter(torch.rand(config.hidden_size, ))
-        self.w_prompt_end = nn.Parameter(torch.rand(config.hidden_size, ))
+        self.w_template_start = nn.Parameter(torch.rand(config.hidden_size, ))
+        self.w_template_end = nn.Parameter(torch.rand(config.hidden_size, ))
 
         self.num_templates = 3
         self.w_template_select = nn.Parameter(torch.randn(self.num_templates, config.hidden_size))
@@ -121,8 +121,8 @@ class ATSR(RobertaPreTrainedModel):
             return torch.tensor(0.0, device=sample_gate_logits.device)
 
     def reset(self):
-        self.w_prompt_start = nn.Parameter(torch.rand(self.config.hidden_size, ))
-        self.w_prompt_end = nn.Parameter(torch.rand(self.config.hidden_size, ))
+        self.w_template_start = nn.Parameter(torch.rand(self.config.hidden_size, ))
+        self.w_template_end = nn.Parameter(torch.rand(self.config.hidden_size, ))
         self.roberta._init_weights(self.contextual_merger.weight)
 
     def context_pooling(self, value_matrix, trigger_att, hidden_rep):  
@@ -151,9 +151,9 @@ class ATSR(RobertaPreTrainedModel):
         enc_mask_ids=None,
         all_ids=None,
         all_mask_ids=None,
-        dec_prompt_ids=None,
-        dec_prompt_mask_ids=None,
-        arg_joint_prompts=None,
+        dec_template_ids=None,
+        dec_template_mask_ids=None,
+        arg_joint_templates=None,
         target_info=None,
         old_tok_to_new_tok_indexs=None,
         arg_list=None,
@@ -185,25 +185,25 @@ class ATSR(RobertaPreTrainedModel):
 
         encoder_attentions = context_outputs_.attentions[self.decode_layer_start].mean(1)
 
-        selected_dec_prompt_embs = []  
-        selected_dec_prompt_mask_ids = []
-        selected_arg_joint_prompts = [] 
+        selected_dec_template_embs = []  
+        selected_dec_template_mask_ids = []
+        selected_arg_joint_templates = [] 
         all_selected_idx = {}
         
         for batch_idx, (event_trigger, event_template_options, sample_event_types) in enumerate(zip(event_triggers, template_options, event_types)):           
     
             batch_template_embs = []
-            batch_dec_prompt_mask_ids = []
+            batch_dec_template_mask_ids = []
             batch_arg_slots = [] 
             one_sample_idx = []
             event_type_to_template = {}  
             added_templates = set() 
-            current_prompt_offset = 0  
+            current_template_offset = 0  
             batch_template_embs = []   
             
             for event_idx, (trigger_pos, event_type) in enumerate(zip(event_trigger, sample_event_types)):
                 if event_type in event_type_to_template:
-                    selected_idx, selected_template_emb,selected_template_text,template_prompt_offset = event_type_to_template[event_type]
+                    selected_idx, selected_template_emb,selected_template_text,template_template_offset = event_type_to_template[event_type]
                     one_sample_idx.append(selected_idx)
                 else:
                     trigger_repr = torch.mean(
@@ -219,10 +219,10 @@ class ATSR(RobertaPreTrainedModel):
                     weight_expanded = template_weights.view(-1, 1, 1)                   
                     selected_template_emb = torch.sum(weight_expanded * all_template_embs, dim=0)    
                     selected_template_text = event_template_options[event_idx][selected_idx]
-                    event_type_to_template[event_type] = (selected_idx, selected_template_emb,selected_template_text,current_prompt_offset)
+                    event_type_to_template[event_type] = (selected_idx, selected_template_emb,selected_template_text,current_template_offset)
                     one_sample_idx.append(selected_idx)
                     
-                selected_idx, selected_template_emb,selected_template_text,template_prompt_offset = event_type_to_template[event_type]
+                selected_idx, selected_template_emb,selected_template_text,template_template_offset = event_type_to_template[event_type]
                 template_key = (selected_template_text, selected_idx)
                 if template_key not in added_templates:
                     added_templates.add(template_key)
@@ -232,16 +232,16 @@ class ATSR(RobertaPreTrainedModel):
                     selected_masks = selected_tokens["attention_mask"]  
                     
                     batch_template_embs.extend(selected_template_emb)
-                    batch_dec_prompt_mask_ids.extend(selected_masks)
-                    current_prompt_offset += len(selected_tokens["input_ids"])
+                    batch_dec_template_mask_ids.extend(selected_masks)
+                    current_template_offset += len(selected_tokens["input_ids"])
                 
-                template_relative_offset = template_prompt_offset
+                template_relative_offset = template_template_offset
                 template_tokens = self.tokenizer(selected_template_text, add_special_tokens=True)
                 arg_list = self.argument_dict[event_type.replace(':', '.')]
-                arg_2_prompt_slots = dict()
+                arg_2_template_slots = dict()
                 
                 for arg in arg_list:
-                    prompt_slots = {
+                    template_slots = {
                         "tok_s": list(), "tok_e": list(),
                         "tok_s_off": list(), "tok_e_off": list(),
                     }
@@ -254,41 +254,41 @@ class ATSR(RobertaPreTrainedModel):
                                                     selected_template_text.split('.')[0]):
                         char_idx_s, char_idx_e = matching_result.span()
                         char_idx_e -= 1
-                        tok_prompt_s = template_tokens.char_to_token(char_idx_s)
-                        tok_prompt_e = template_tokens.char_to_token(char_idx_e) + 1
+                        tok_template_s = template_tokens.char_to_token(char_idx_s)
+                        tok_template_e = template_tokens.char_to_token(char_idx_e) + 1
                                                         
-                        actual_tok_s = tok_prompt_s + template_relative_offset
-                        actual_tok_e = tok_prompt_e + template_relative_offset
-                        actual_tok_s_off = actual_tok_s + offset_prompt[batch_idx]
-                        actual_tok_e_off = actual_tok_e + offset_prompt[batch_idx]
+                        actual_tok_s = tok_template_s + template_relative_offset
+                        actual_tok_e = tok_template_e + template_relative_offset
+                        actual_tok_s_off = actual_tok_s + offset_template[batch_idx]
+                        actual_tok_e_off = actual_tok_e + offset_template[batch_idx]
 
-                        prompt_slots["tok_s"].append(actual_tok_s)
-                        prompt_slots["tok_e"].append(actual_tok_e)
-                        prompt_slots["tok_s_off"].append(actual_tok_s_off)
-                        prompt_slots["tok_e_off"].append(actual_tok_e_off)
+                        template_slots["tok_s"].append(actual_tok_s)
+                        template_slots["tok_e"].append(actual_tok_e)
+                        template_slots["tok_s_off"].append(actual_tok_s_off)
+                        template_slots["tok_e_off"].append(actual_tok_e_off)
                                                         
-                    arg_2_prompt_slots[arg] = prompt_slots
-                batch_arg_slots.append(arg_2_prompt_slots) 
+                    arg_2_template_slots[arg] = template_slots
+                batch_arg_slots.append(arg_2_template_slots) 
             all_selected_idx[batch_idx] = one_sample_idx
             H = selected_template_emb.size(-1)  
-            while len(batch_template_embs) < self.config.max_prompt_seq_length:
+            while len(batch_template_embs) < self.config.max_template_seq_length:
                 batch_template_embs.append(                                
                     torch.zeros(H, device=selected_template_emb.device)
                 )
-            while len(batch_dec_prompt_mask_ids) < self.config.max_prompt_seq_length:
-                batch_dec_prompt_mask_ids.append(0)
+            while len(batch_dec_template_mask_ids) < self.config.max_template_seq_length:
+                batch_dec_template_mask_ids.append(0)
 
             batch_emb_tensor = torch.stack(batch_template_embs, dim=0) 
-            selected_dec_prompt_embs.append(batch_emb_tensor)
-            selected_dec_prompt_mask_ids.append(batch_dec_prompt_mask_ids)
-            selected_arg_joint_prompts.append(batch_arg_slots)
+            selected_dec_template_embs.append(batch_emb_tensor)
+            selected_dec_template_mask_ids.append(batch_dec_template_mask_ids)
+            selected_arg_joint_templates.append(batch_arg_slots)
 
-        selected_dec_prompt_embs = torch.stack(selected_dec_prompt_embs, dim=0)    
-        selected_dec_prompt_mask_ids = torch.tensor(selected_dec_prompt_mask_ids, device=all_mask_ids.device)
+        selected_dec_template_embs = torch.stack(selected_dec_template_embs, dim=0)    
+        selected_dec_template_mask_ids = torch.tensor(selected_dec_template_mask_ids, device=all_mask_ids.device)
 
-        decoder_prompt_outputs = self.roberta(
-            inputs_embeds=selected_dec_prompt_embs,
-            attention_mask=selected_dec_prompt_mask_ids,
+        decoder_template_outputs = self.roberta(
+            inputs_embeds=selected_dec_template_embs,
+            attention_mask=selected_dec_template_mask_ids,
             encoder_hidden_states=decoder_context,
             encoder_attention_mask=all_mask_ids,
             cross_attention=True,
@@ -299,8 +299,8 @@ class ATSR(RobertaPreTrainedModel):
         total_loss = 0.
         if len(event_triggers) == 0:
             print(len(event_triggers))
-        for i, (context_output, decoder_prompt_output, encoder_attention, selected_arg_joint_prompt,arg_joint_prompt, old_tok_to_new_tok_index, event_trigger) in \
-            enumerate(zip(context_outputs, decoder_prompt_outputs, encoder_attentions,selected_arg_joint_prompts,arg_joint_prompts, old_tok_to_new_tok_indexs, event_triggers)):
+        for i, (context_output, decoder_template_output, encoder_attention, selected_arg_joint_template,arg_joint_template, old_tok_to_new_tok_index, event_trigger) in \
+            enumerate(zip(context_outputs, decoder_template_outputs, encoder_attentions,selected_arg_joint_templates,arg_joint_templates, old_tok_to_new_tok_indexs, event_triggers)):
             
             batch_loss = list()
             cnt = 0
@@ -311,50 +311,50 @@ class ATSR(RobertaPreTrainedModel):
                 event_trigger_attention = torch.mean(encoder_attention[event_trigger_pos[0]:event_trigger_pos[1]], dim=0).unsqueeze(0)
             
                 output = dict()
-                for arg_role in selected_arg_joint_prompt[ii].keys():
+                for arg_role in selected_arg_joint_template[ii].keys():
                  
                     """
                     "arg_role": {"tok_s": , "tok_e": }
                     """
-                    prompt_slots = selected_arg_joint_prompt[ii][arg_role]
+                    template_slots = selected_arg_joint_template[ii][arg_role]
 
-                    prompt_slots_enc = arg_joint_prompt[ii][arg_role]
+                    template_slots_enc = arg_joint_template[ii][arg_role]
                     count=0
                     start_logits_list = list()
                     end_logits_list = list()
-                    for (p_start,p_end, p_start_off, p_end_off) in zip(prompt_slots['tok_s'], prompt_slots['tok_e'], prompt_slots['tok_s_off'], prompt_slots['tok_e_off']):
-                        enc_text_prompt_slots = prompt_slots_enc['tok_s_off'][count]
-                        enc_text_prompt_slote = prompt_slots_enc['tok_e_off'][count]
+                    for (p_start,p_end, p_start_off, p_end_off) in zip(template_slots['tok_s'], template_slots['tok_e'], template_slots['tok_s_off'], template_slots['tok_e_off']):
+                        enc_text_template_slots = template_slots_enc['tok_s_off'][count]
+                        enc_text_template_slote = template_slots_enc['tok_e_off'][count]
                         if self.config.dataset == 'wikievent':
-                            prompt_query_sub = decoder_prompt_output[p_start:p_end]
+                            template_query_sub = decoder_template_output[p_start:p_end]
                         
-                        if prompt_query_sub.shape[0] == 0:
-                            prompt_query_sub = context_output[0].unsqueeze(0)
+                        if template_query_sub.shape[0] == 0:
+                            template_query_sub = context_output[0].unsqueeze(0)
                       
-                        if enc_text_prompt_slots >= self.config.max_enc_seq_length  or enc_text_prompt_slote >= self.config.max_enc_seq_length:
-                            prompt_query_sub = torch.mean(prompt_query_sub, dim=0).unsqueeze(0)
+                        if enc_text_template_slots >= self.config.max_enc_seq_length  or enc_text_template_slote >= self.config.max_enc_seq_length:
+                            template_query_sub = torch.mean(template_query_sub, dim=0).unsqueeze(0)
                         else:
                          
-                            prompt_query_sub_attention = encoder_attention[enc_text_prompt_slots:enc_text_prompt_slote]
+                            template_query_sub_attention = encoder_attention[enc_text_template_slots:enc_text_template_slote]
                         
-                            if prompt_query_sub_attention.shape[0] == 0:
-                                prompt_query_sub_attention = encoder_attention[0]
+                            if template_query_sub_attention.shape[0] == 0:
+                                template_query_sub_attention = encoder_attention[0]
                           
-                            prompt_query_sub = torch.mean(prompt_query_sub, dim=0).unsqueeze(0)
-                            prompt_query_sub_attention = torch.mean(prompt_query_sub_attention, dim=0).unsqueeze(0)
+                            template_query_sub = torch.mean(template_query_sub, dim=0).unsqueeze(0)
+                            template_query_sub_attention = torch.mean(template_query_sub_attention, dim=0).unsqueeze(0)
                             
                             if self.argument_slot_moe is not None:
-                                prompt_query_sub_enhanced, gate_score1 = self.argument_slot_moe(prompt_query_sub)
+                                template_query_sub_enhanced, gate_score1 = self.argument_slot_moe(template_query_sub)
                                 gate_logits_list_per_sample[i].append(gate_score1)
-                                prompt_query_sub = prompt_query_sub + self.arg_res * prompt_query_sub_enhanced
+                                template_query_sub = template_query_sub + self.arg_res * template_query_sub_enhanced
                      
-                            context_rs = self.context_pooling(prompt_query_sub_attention, event_trigger_attention, decoder_context[i])
+                            context_rs = self.context_pooling(template_query_sub_attention, event_trigger_attention, decoder_context[i])
                             
-                            prompt_query_sub = torch.tanh(self.contextual_merger(torch.cat((prompt_query_sub, context_rs), dim=-1)))
+                            template_query_sub = torch.tanh(self.contextual_merger(torch.cat((template_query_sub, context_rs), dim=-1)))
                         
                         count+=1 
-                        start_query = (prompt_query_sub*self.w_prompt_start).unsqueeze(-1)
-                        end_query = (prompt_query_sub*self.w_prompt_end).unsqueeze(-1)  
+                        start_query = (template_query_sub*self.w_template_start).unsqueeze(-1)
+                        end_query = (template_query_sub*self.w_template_end).unsqueeze(-1)  
 
                         start_logits = torch.bmm(context_output.unsqueeze(0), start_query).squeeze()
                         end_logits = torch.bmm(context_output.unsqueeze(0), end_query).squeeze()
