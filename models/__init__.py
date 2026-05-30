@@ -41,20 +41,10 @@ def build_model(args, model_type):
     config.bipartite = args.bipartite
     config.matching_method_train = args.matching_method_train
 
-    # moe
-    config.use_moe = args.use_moe
     config.use_arg_moe = args.use_arg_moe
     config.lambd = args.lambd
     config.moe_num_experts = args.moe_num_experts
-    config.moe_top_k = args.moe_top_k
-    config.moe_level = args.moe_level
-    config.role_path = args.role_path
-    config.residual_c = args.residual_c
     config.arg_res = args.arg_res
-
-    # mlee's file
-    config.dataset = args.dataset_type
-    config.role_path = args.role_path
     
     tokenizer = tokenizer_class.from_pretrained(args.model_name_or_path, add_special_tokens=True)
     if args.inference_only:
@@ -62,7 +52,6 @@ def build_model(args, model_type):
     else:
         model = model_class.from_pretrained(args.model_name_or_path, from_tf=bool('.ckpt' in args.model_name_or_path), config=config)
     
-    # 新增：将tokenizer传递给模型
     model.tokenizer = tokenizer
     # Add trigger special tokens and continuous token (maybe in prompt)
     new_token_list = copy.deepcopy(EXTERNAL_TOKENS)
