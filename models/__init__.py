@@ -8,7 +8,6 @@ from transformers import BartConfig, BartTokenizerFast
 from transformers import AdamW, get_linear_schedule_with_warmup
 
 from .ATSR import ATSR
-from .single_prompt import BartSingleArg
 from utils import EXTERNAL_TOKENS
 from processors.processor_multiarg import MultiargProcessor
 
