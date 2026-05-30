@@ -54,7 +54,7 @@ def build_model(args, model_type):
     model.tokenizer = tokenizer
     # Add trigger special tokens and continuous token (maybe in template)
     new_token_list = copy.deepcopy(EXTERNAL_TOKENS)
-    templates = MultiargProcessor._read_template_group(args.template_path)
+    templates = MultiargProcessor._read_template_group(args.ontology_path)
     for event_type, template in templates.items():
         token_list = template.split()
         for token in token_list:
