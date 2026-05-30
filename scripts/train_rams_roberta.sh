@@ -22,9 +22,7 @@ do
         --max_steps=10000 \
         --max_enc_seq_length 500 \
         --max_template_seq_length 210 \
-        --device cuda:3 \
         --bipartite \
-        --lamb 1e-5 \
         --use_arg_moe \
         --moe_num_experts 4 \
         --moe_top_k 1 \
