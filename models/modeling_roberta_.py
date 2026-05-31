@@ -31,16 +31,7 @@ class RobertaEmbeddings(nn.Module):
         self.position_embeddings = nn.Embedding(
             config.max_position_embeddings, config.hidden_size, padding_idx=self.padding_idx
         )
-        
-        # # 存储原始输入模版的起始位置
-        # self.prompt_dict = {}
-        
-        # self.w_prompt = nn.Parameter(torch.rand(4,config.hidden_size))
-        # # 选出来的prompt位置
-        # self.prompt_select = []
-        
-        
-        
+      
         
     def forward(
             self, input_ids=None, token_type_ids=None, position_ids=None, inputs_embeds=None, past_key_values_length=0
