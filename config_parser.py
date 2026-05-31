@@ -3,8 +3,8 @@ import argparse
 
 def get_args_parser():
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument("--model_type", default='DEEIA', type=str,
-                        help="which types of model you would use. model with multi-template(DEEIA) or single-template(base)")
+    parser.add_argument("--model_type", default='ATSR', type=str,
+                        help="which types of model you would use. model with multi-template(ATSR) or single-template(base)")
     parser.add_argument("--model_name_or_path", default="./ckpts/bart-base", type=str,
                         help="pre-trained language model")
     parser.add_argument("--dataset_type", default="rams", type=str,
@@ -76,7 +76,7 @@ def get_args_parser():
                         help="maximum arguments extracted for one role.")
     parser.add_argument('--th_delta', default=.0, type=float,
                         help="threshold controlling whether accept a candiate span as argument or not")
-    # setting only for DEEIA model
+    # setting only for  model
     parser.add_argument("--max_template_seq_length", default=64, type=int,
                         help="maximum length for multi-template")
     parser.add_argument('--matching_method_train', default="max", choices=["max", 'accurate'], type=str,
