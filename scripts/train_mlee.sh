@@ -27,7 +27,7 @@ do
         --warmup_steps 0.2 \
         --bipartite \
         --use_arg_moe \
-        --moe_num_experts 5 \
+        --moe_num_experts 4 \
         --moe_top_k 1 \
         --lambd 0.1
 done
