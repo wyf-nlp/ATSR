@@ -197,18 +197,13 @@ class ArgumentExtractionDataset(Dataset):
         event_trigger = [f.event_trigger for f in batch]
         enc_attention_mask = [f.enc_attention_mask for f in batch]
 
-        template_options = [f.template_options for f in batch]
-        event_types = [f.event_type for f in batch]
-        offset_template = [f.offset_template for f in batch]
-
         return enc_input_ids, enc_mask_ids, all_ids, all_mask_ids, \
                dec_arg_query_ids, dec_arg_query_mask_ids, \
                dec_template_ids, dec_template_mask_ids, \
                target_info, old_tok_to_new_tok_index, arg_joint_template, arg_lists, \
                example_idx, feature_idx, \
                dec_arg_start_positions, dec_arg_end_positions, \
-               start_position_ids, end_position_ids, event_trigger, enc_attention_mask, \
-               template_options,event_types,offset_template
+               start_position_ids, end_position_ids, event_trigger, enc_attention_mask
 
 
 class MultiargProcessor(DSET_processor):
@@ -536,7 +531,7 @@ class MultiargProcessor(DSET_processor):
                               list_arg_2_template_slots, list_target_info, enc_attention_mask,
                               old_tok_to_new_tok_index=old_tok_to_new_tok_index, full_text=example.context,
                               arg_list=list_roles,
-                              template_options=list_template_options,offset_template=offset_template
+                              template_options=list_template_options
                               )
             )
         print(over_nums)
