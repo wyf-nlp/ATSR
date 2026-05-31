@@ -325,8 +325,7 @@ class ATSR(RobertaPreTrainedModel):
                     for (p_start,p_end, p_start_off, p_end_off) in zip(template_slots['tok_s'], template_slots['tok_e'], template_slots['tok_s_off'], template_slots['tok_e_off']):
                         enc_text_template_slots = template_slots_enc['tok_s_off'][count]
                         enc_text_template_slote = template_slots_enc['tok_e_off'][count]
-                        if self.config.dataset == 'wikievent':
-                            template_query_sub = decoder_template_output[p_start:p_end]
+                        template_query_sub = decoder_template_output[p_start:p_end]
                         
                         if template_query_sub.shape[0] == 0:
                             template_query_sub = context_output[0].unsqueeze(0)
