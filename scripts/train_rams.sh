@@ -26,5 +26,5 @@ do
         --use_arg_moe \
         --moe_num_experts 4 \
         --moe_top_k 1 \
-        --lambd 0.001
+        --lambd 0.1
 done
