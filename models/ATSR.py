@@ -200,40 +200,34 @@ class ATSR(RobertaPreTrainedModel):
             added_templates = set() 
             current_template_offset = 0  
             batch_template_embs = []   
-            
+            sample_event_types = list(sample_event_types.keys())
             for event_idx, (trigger_pos, event_type) in enumerate(zip(event_trigger, sample_event_types)):
-                if event_type in event_type_to_template:
-                    selected_idx, selected_template_emb,selected_template_text,template_template_offset = event_type_to_template[event_type]
-                    one_sample_idx.append(selected_idx)
-                else:
-                    trigger_repr = torch.mean(
-                        decoder_context[batch_idx][trigger_pos[0]:trigger_pos[1]], 
-                        dim=0
-                    )
-                    templates_text_list = event_template_options[event_idx] 
-                    inputs = self.tokenizer(templates_text_list, padding=True, return_tensors='pt')
-                    template_input_ids = inputs['input_ids'].to(self.device)
+                
+                trigger_repr = torch.mean(
+                    decoder_context[batch_idx][trigger_pos[0]:trigger_pos[1]], 
+                    dim=0
+                )
+                templates_text_list = event_template_options[event_idx] 
+                inputs = self.tokenizer(templates_text_list, padding=True, return_tensors='pt')
+                template_input_ids = inputs['input_ids'].to(self.device)
 
-                    template_weights, selected_idx = self.select_template(trigger_repr)
-                    all_template_embs = self.roberta.embeddings.word_embeddings(template_input_ids)  
-                    weight_expanded = template_weights.view(-1, 1, 1)                   
-                    selected_template_emb = torch.sum(weight_expanded * all_template_embs, dim=0)    
-                    selected_template_text = event_template_options[event_idx][selected_idx]
-                    event_type_to_template[event_type] = (selected_idx, selected_template_emb,selected_template_text,current_template_offset)
-                    one_sample_idx.append(selected_idx)
-                    
+                template_weights, selected_idx = self.select_template(trigger_repr)
+                all_template_embs = self.roberta.embeddings.word_embeddings(template_input_ids)  
+                weight_expanded = template_weights.view(-1, 1, 1)                   
+                selected_template_emb = torch.sum(weight_expanded * all_template_embs, dim=0)    
+                selected_template_text = event_template_options[event_idx][selected_idx]
+                event_type_to_template[event_type] = (selected_idx, selected_template_emb,selected_template_text,current_template_offset)
+                one_sample_idx.append(selected_idx)
+                
                 selected_idx, selected_template_emb,selected_template_text,template_template_offset = event_type_to_template[event_type]
-                template_key = (selected_template_text, selected_idx)
-                if template_key not in added_templates:
-                    added_templates.add(template_key)
-                    selected_tokens = self.tokenizer(
-                        selected_template_text, add_special_tokens=True
-                    )
-                    selected_masks = selected_tokens["attention_mask"]  
-                    
-                    batch_template_embs.extend(selected_template_emb)
-                    batch_dec_template_mask_ids.extend(selected_masks)
-                    current_template_offset += len(selected_tokens["input_ids"])
+                selected_tokens = self.tokenizer(
+                    selected_template_text, add_special_tokens=True
+                )
+                selected_masks = selected_tokens["attention_mask"]  
+                
+                batch_template_embs.extend(selected_template_emb)
+                batch_dec_template_mask_ids.extend(selected_masks)
+                current_template_offset += len(selected_tokens["input_ids"])
                 
                 template_relative_offset = template_template_offset
                 template_tokens = self.tokenizer(selected_template_text, add_special_tokens=True)
