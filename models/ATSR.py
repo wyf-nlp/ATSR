@@ -339,7 +339,7 @@ class ATSR(RobertaPreTrainedModel):
                             if self.argument_slot_moe is not None:
                                 template_query_sub_enhanced, gate_score1 = self.argument_slot_moe(template_query_sub)
                                 gate_logits_list_per_sample[i].append(gate_score1)
-                                template_query_sub = template_query_sub + self.arg_res * template_query_sub_enhanced
+                                template_query_sub = template_query_sub + template_query_sub_enhanced
                      
                             context_rs = self.context_pooling(template_query_sub_attention, event_trigger_attention, decoder_context[i])
                             
