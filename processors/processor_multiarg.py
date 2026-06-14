@@ -525,7 +525,7 @@ class MultiargProcessor(DSET_processor):
 
             features.append(
                 InputFeatures(example_id, feature_idx,
-                              list_event_type, trigger_enc_token_index,
+                              event_type_2_events, trigger_enc_token_index,
                               enc_text, enc_input_ids, enc_mask_ids, all_ids, all_mask_ids,
                               dec_template_text, dec_table_ids, dec_table_mask, None,
                               list_arg_2_template_slots, list_target_info, enc_attention_mask,
